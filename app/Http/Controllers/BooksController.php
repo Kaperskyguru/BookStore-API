@@ -14,7 +14,12 @@ class BooksController extends Controller
      */
     public function index()
     {
-        return Book::all();
+        $books=Book::all();
+        if($books!==null){
+            return Book::all()->sortBy('title', 'desc')->paginate(2)->get();
+        }else{
+            return "404: resource not found";
+        }
     }
 
     /**
@@ -25,9 +30,9 @@ class BooksController extends Controller
     public function create()
     {
         if (auth()->user()->is_admin == 1) {
-            return Book::create($request->all());;
+            return Book::create($request->all());
         }else{
-            return redirect()->back();
+            return "401: request unauthorized";
         }
     }
 
