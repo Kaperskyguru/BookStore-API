@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Book;
+use Illuminate\Http\Request;
+use Tutornia\Http\Resources\BookResource;
 
 class BooksController extends Controller
 {
@@ -14,12 +15,34 @@ class BooksController extends Controller
      */
     public function index()
     {
-        $books=Book::all();
-        if($books!==null){
-            return Book::all()->sortBy('title', 'desc')->paginate(2)->get();
-        }else{
-            return "404: resource not found";
+
+        $books = [];
+        $page = request('page') || 1;
+        $size = request('size') || 10;
+
+        if ($page) {
+            $books = Book::with('review')->paginate($page, $size);
         }
+
+        if (request('sortColumn') && request('sortColumn') == 'title') {
+            $books = Book::with('review')->sortBy('title', request('sortDirection'))->paginate($page, $size)->get();
+        }
+
+        if (request('sortColumn') && request('sortColumn') == 'avg_review') {
+            $books = Book::with('review')->sortBy('title', request('sortDirection'))->paginate($page, $size)->get();
+        }
+
+        if (request('title')) {
+            $searchTerm = request('title');
+            $books = Book::with('review')->where('title', 'LIKE', "%{$searchTerm}%")->paginate($page, $size)->get();
+        }
+
+        if (request('authors')) {
+            $searchTerm = request('authors');
+            $books = Book::with('review')->whereIn('author_id', $searchTerm)->paginate($page, $size)->get();
+        }
+
+        return BookResource::collection($books);
     }
 
     /**
@@ -31,7 +54,7 @@ class BooksController extends Controller
     {
         if (auth()->user()->is_admin == 1) {
             return Book::create($request->all());
-        }else{
+        } else {
             return "401: request unauthorized";
         }
     }
@@ -55,7 +78,7 @@ class BooksController extends Controller
      */
     public function show($id)
     {
-        return Book::find($id);
+        return new BookResource(Book::find($id));
     }
 
     /**
@@ -78,12 +101,19 @@ class BooksController extends Controller
      */
     public function update(Request $request, $id)
     {
+
+        // RUN VALIDTION HERE
+
         if (auth()->user()->is_admin == 1) {
             $book = Book::findOrFail($id);
+
             $book->update($request->all());
-            return $book;
-        }else{
-            return redirect()->back();
+
+            return new BookResource($book);
+        } else {
+
+            // PUT IN A BETTER JSON MESSAGE
+            return response()->json();
         }
     }
 
@@ -100,8 +130,9 @@ class BooksController extends Controller
             $book->delete();
 
             return 204;
-        }else{
-            return redirect()->back();
+        } else {
+            // PUT IN A BETTER JSON MESSAGE
+            return response()->json();
         }
     }
 }
