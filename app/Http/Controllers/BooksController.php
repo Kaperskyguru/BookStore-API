@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Book;
 
 class BooksController extends Controller
 {
@@ -13,7 +14,7 @@ class BooksController extends Controller
      */
     public function index()
     {
-        
+        return Book::all();
     }
 
     /**
@@ -23,7 +24,11 @@ class BooksController extends Controller
      */
     public function create()
     {
-        //
+        if (auth()->user()->is_admin == 1) {
+            return Book::create($request->all());;
+        }else{
+            return redirect()->back();
+        }
     }
 
     /**
@@ -45,7 +50,7 @@ class BooksController extends Controller
      */
     public function show($id)
     {
-        //
+        return Book::find($id);
     }
 
     /**
@@ -68,7 +73,13 @@ class BooksController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        if (auth()->user()->is_admin == 1) {
+            $book = Book::findOrFail($id);
+            $book->update($request->all());
+            return $book;
+        }else{
+            return redirect()->back();
+        }
     }
 
     /**
@@ -79,6 +90,13 @@ class BooksController extends Controller
      */
     public function destroy($id)
     {
-        //
+        if (auth()->user()->is_admin == 1) {
+            $book = Book::findOrFail($id);
+            $book->delete();
+
+            return 204;
+        }else{
+            return redirect()->back();
+        }
     }
 }
